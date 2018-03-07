@@ -38,6 +38,49 @@
 
 #define UNMAPPED_UNIFORM_LOC ~0u
 
+void
+dump_uniform_storage(struct gl_context *ctx,
+                     struct gl_shader_program *prog);
+
+void
+dump_uniform_storage(struct gl_context *ctx,
+                     struct gl_shader_program *prog)
+{
+   for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
+      struct gl_uniform_storage *uniform =
+         prog->data->UniformStorage + i;
+
+      printf("%u: remap_loc=%i, block_index=%i, type=%s, elems=%u, offset=%i, "
+             "array_stride=%i, matrix_stride=%i, row_major=%i, storage offset=%zi, "
+             "active_shader_mask=%i, is_ssbo=%i, name=%s",
+             i,
+             uniform->remap_location,
+             uniform->block_index,
+             glsl_get_type_name(uniform->type),
+             uniform->array_elements,
+             uniform->offset,
+             uniform->array_stride,
+             uniform->matrix_stride,
+             uniform->row_major,
+             /* FIXME: what means the value below? typo? */
+             uniform->storage - prog->data->UniformDataSlots,
+             uniform->active_shader_mask,
+             uniform->is_shader_storage,
+             uniform->name);
+
+      for (unsigned stage = 0; stage < MESA_SHADER_STAGES; stage++) {
+         if (!uniform->opaque[stage].active)
+            continue;
+
+         printf(", %s=%i",
+                _mesa_shader_stage_to_string(stage),
+                uniform->opaque[stage].index);
+      }
+
+      fputc('\n', stdout);
+   }
+}
+
 static void
 nir_setup_uniform_remap_tables(struct gl_context *ctx,
                                struct gl_shader_program *prog)
@@ -787,6 +830,8 @@ gl_nir_link_uniforms(struct gl_context *ctx,
 
    nir_setup_uniform_remap_tables(ctx, prog);
    gl_nir_set_uniform_initializers(ctx, prog);
+
+   dump_uniform_storage(ctx, prog);
 
    return true;
 }
