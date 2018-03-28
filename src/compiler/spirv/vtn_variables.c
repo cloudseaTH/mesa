@@ -1671,8 +1671,7 @@ is_per_vertex_inout(const struct vtn_variable *var, gl_shader_stage stage)
 }
 
 static void
-add_missing_member_locations(struct vtn_variable *var,
-                             bool is_vertex_input)
+add_missing_member_locations(struct vtn_variable *var)
 {
    unsigned length =
       glsl_get_length(glsl_without_array(var->type->type));
@@ -1702,7 +1701,8 @@ add_missing_member_locations(struct vtn_variable *var,
          glsl_get_struct_field(var->var->interface_type, i);
 
       location +=
-         glsl_count_attribute_slots(member_type, is_vertex_input);
+         glsl_count_attribute_slots(member_type,
+                                    false /* is_gl_vertex_input */);
    }
 }
 
@@ -1878,9 +1878,7 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
    if ((var->mode == vtn_variable_mode_input ||
         var->mode == vtn_variable_mode_output) &&
        var->var->members) {
-      bool is_vertex_input = (b->shader->info.stage == MESA_SHADER_VERTEX &&
-                              var->mode == vtn_variable_mode_input);
-      add_missing_member_locations(var, is_vertex_input);
+      add_missing_member_locations(var);
    }
 
    if (var->mode == vtn_variable_mode_uniform) {
