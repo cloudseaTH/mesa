@@ -253,6 +253,7 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
       .ssbo_ptr_type = glsl_vector_type(GLSL_TYPE_UINT, 2),
       .push_const_ptr_type = glsl_uint_type(),
       .shared_ptr_type = glsl_uint_type(),
+      .arb_gl_spirv = true,
    };
 
    nir_function *entry_point =
