@@ -85,6 +85,9 @@ unsigned glsl_get_sampler_target(const struct glsl_type *type);
 unsigned glsl_get_record_location_offset(const struct glsl_type *type,
                                          unsigned length);
 
+
+unsigned glsl_array_depth(const struct glsl_type *type);
+
 static inline unsigned
 glsl_get_bit_size(const struct glsl_type *type)
 {

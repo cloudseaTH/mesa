@@ -483,3 +483,9 @@ glsl_atomic_uint_type(void)
 {
    return glsl_type::atomic_uint_type;
 }
+
+unsigned
+glsl_array_depth(const struct glsl_type *type)
+{
+   return type->array_depth();
+}
