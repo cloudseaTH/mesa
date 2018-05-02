@@ -900,6 +900,65 @@ fs_inst::size_read(int arg) const
    return 0;
 }
 
+/*
+ * Returns a type based on a reference_type (word, float, half-float) and a
+ * given bit_size.
+ *
+ * Reference BRW_REGISTER_TYPE are HF,F,DF,W,D,UW,UD.
+ *
+ * @FIXME: 64-bit return types are always DF on integer types to maintain
+ * compability with uses of DF previously to the introduction of int64
+ * support.
+ */
+brw_reg_type
+brw_reg_type_from_bit_size(const unsigned bit_size,
+                           const brw_reg_type reference_type)
+{
+   switch(reference_type) {
+   case BRW_REGISTER_TYPE_HF:
+   case BRW_REGISTER_TYPE_F:
+   case BRW_REGISTER_TYPE_DF:
+      switch(bit_size) {
+      case 16:
+         return BRW_REGISTER_TYPE_HF;
+      case 32:
+         return BRW_REGISTER_TYPE_F;
+      case 64:
+         return BRW_REGISTER_TYPE_DF;
+      default:
+         unreachable("Invalid bit size");
+      }
+   case BRW_REGISTER_TYPE_W:
+   case BRW_REGISTER_TYPE_D:
+   case BRW_REGISTER_TYPE_Q:
+      switch(bit_size) {
+      case 16:
+         return BRW_REGISTER_TYPE_W;
+      case 32:
+         return BRW_REGISTER_TYPE_D;
+      case 64:
+         return BRW_REGISTER_TYPE_Q;
+      default:
+         unreachable("Invalid bit size");
+      }
+   case BRW_REGISTER_TYPE_UW:
+   case BRW_REGISTER_TYPE_UD:
+   case BRW_REGISTER_TYPE_UQ:
+      switch(bit_size) {
+      case 16:
+         return BRW_REGISTER_TYPE_UW;
+      case 32:
+         return BRW_REGISTER_TYPE_UD;
+      case 64:
+         return BRW_REGISTER_TYPE_UQ;
+      default:
+         unreachable("Invalid bit size");
+      }
+   default:
+      unreachable("Unknown type");
+   }
+}
+
 namespace {
    /* Return the subset of flag registers that an instruction could
     * potentially read or write based on the execution controls and flag

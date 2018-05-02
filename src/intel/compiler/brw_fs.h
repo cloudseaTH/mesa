@@ -525,4 +525,8 @@ fs_reg setup_imm_df(const brw::fs_builder &bld,
 enum brw_barycentric_mode brw_barycentric_mode(enum glsl_interp_mode mode,
                                                nir_intrinsic_op op);
 
+brw_reg_type
+brw_reg_type_from_bit_size(const unsigned bit_size,
+                           const brw_reg_type reference_type);
+
 #endif /* BRW_FS_H */
