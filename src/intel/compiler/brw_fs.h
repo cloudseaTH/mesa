@@ -145,6 +145,7 @@ public:
                                    exec_list *acp);
    bool opt_drop_redundant_mov_to_flags();
    bool opt_register_renaming();
+   bool opt_bool_bit_size();
    bool opt_bank_conflicts();
    unsigned bank_conflict_cycles(const fs_inst *inst) const;
    bool register_coalesce();

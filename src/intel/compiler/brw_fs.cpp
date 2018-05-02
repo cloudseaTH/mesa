@@ -3026,6 +3026,237 @@ fs_visitor::opt_peephole_csel()
    return progress;
 }
 
+/**
+ * For a given integer register type representing a boolean value, obtain
+ * the signed version of the type, which is required to get sign-extension
+ * for producing correct boolean values when converting to larger bit-sizes.
+ */
+static brw_reg_type
+get_signed_bool_type(brw_reg_type type)
+{
+   switch (type) {
+   case BRW_REGISTER_TYPE_D:
+   case BRW_REGISTER_TYPE_UD:
+      return BRW_REGISTER_TYPE_D;
+   case BRW_REGISTER_TYPE_W:
+   case BRW_REGISTER_TYPE_UW:
+      return BRW_REGISTER_TYPE_W;
+   case BRW_REGISTER_TYPE_B:
+   case BRW_REGISTER_TYPE_UB:
+      return BRW_REGISTER_TYPE_B;
+   default:
+      assert(!"Invalid boolean register type");
+   }
+}
+
+static bool
+inst_supports_boolean(fs_inst *inst)
+{
+   switch (inst->opcode) {
+   case BRW_OPCODE_MOV:
+   case BRW_OPCODE_CMP:
+   case BRW_OPCODE_SEL:
+   case BRW_OPCODE_NOT:
+   case BRW_OPCODE_AND:
+   case BRW_OPCODE_OR:
+   case BRW_OPCODE_XOR:
+      return true;
+   default:
+      return false;
+   }
+}
+
+/**
+ * Modifies the type of a boolean register to accomodate it to the given
+ * bit-size while preserving signedness of its original type.
+ */
+static inline fs_reg
+fix_bool_reg_bit_size(fs_reg reg, unsigned bit_size)
+{
+   const brw_reg_type bool_type =
+      brw_reg_type_from_bit_size(bit_size, reg.type);
+   return retype(reg, bool_type);
+}
+
+/**
+ * Propagates the bit-size of the destination of a boolean instruction to
+ * all its consumers. If propagate_from_source is True, then the producer
+ * is a conversion MOV from a low bit-size boolean to 32-bit, and in that
+ * case the propagation happens from the source of the instruction instead
+ * of its destination.
+ */
+static bool
+propagate_bool_bit_size(fs_inst *inst, bool propagate_from_source)
+{
+   assert(!propagate_from_source || inst->opcode == BRW_OPCODE_MOV);
+
+   bool progress = false;
+
+   const unsigned bit_size = 8 * (propagate_from_source ?
+      type_sz(inst->src[0].type) : type_sz(inst->dst.type));
+
+   /* Look for any follow-up instructions that sources from the boolean
+    * result of the producer instruction and rewrite them to use the correct
+    * bit-size.
+    */
+   foreach_inst_in_block_starting_from(fs_inst, fixup_inst, inst) {
+      if (!inst_supports_boolean(fixup_inst))
+         continue;
+
+      /* For MOV instructions we can always rewrite the boolean source
+       * if the instrucion reads the same region we produced in the
+       * 32-bit conversion.
+       */
+      if (fixup_inst->opcode == BRW_OPCODE_MOV &&
+          region_match(inst->dst, inst->size_written,
+                       fixup_inst->src[0], fixup_inst->size_read(0))) {
+         if (propagate_from_source) {
+            fixup_inst->src[0].file = inst->src[0].file;
+            fixup_inst->src[0].nr = inst->src[0].nr;
+         }
+         fixup_inst->src[0] =
+            fix_bool_reg_bit_size(fixup_inst->src[0], bit_size);
+         progress = true;
+         continue;
+      }
+
+      /* For logical instructions we have the same restriction as for MOVs,
+       * and we also need to:
+       *
+       * 1. Propagate the bit-size to the boolean destination of the
+       *    instruction.
+       * 2. Rewrite any instruction that reads the destination to use
+       *    the new bit-size.
+       *
+       * However, we can only do these if we can rewrite all the operands
+       * to use the same bit-size.
+       */
+      bool progress_logical = false;
+      bool same_bit_size = true;
+      for (unsigned i = 0; i < fixup_inst->sources; i++) {
+         if (region_match(inst->dst, inst->size_written,
+                          fixup_inst->src[i], fixup_inst->size_read(i))) {
+            if (propagate_from_source) {
+               fixup_inst->src[i].file = inst->src[0].file;
+               fixup_inst->src[i].nr = inst->src[0].nr;
+            }
+            fixup_inst->src[i] =
+               fix_bool_reg_bit_size(fixup_inst->src[i], bit_size);
+            progress_logical = true;
+            progress = true;
+         }
+
+         if (i > 0 &&
+             type_sz(fixup_inst->src[i].type) !=
+             type_sz(fixup_inst->src[i - 1].type)) {
+            same_bit_size = false;
+         }
+      }
+
+      /* If we have successfully rewritten a logical instruction operand
+       * to use a smaller bit-size boolean and all the operands in the
+       * instruction have the same small bit-size, then propagate the
+       * new bit-size to the destination boolean and do the same for all
+       * follow-up instructions that read from it.
+       */
+      if (progress_logical && same_bit_size) {
+         fixup_inst->dst = retype(fixup_inst->dst, fixup_inst->src[0].type);
+         propagate_bool_bit_size(fixup_inst, false);
+      }
+   }
+
+   return progress;
+}
+
+/* Tries to remove conversions from low bit-size booleans to 32-bit that
+ * are injected in the program during the NIR->FS pass. This optimization
+ * assumes that these conversions are inserted right after CMP instructions
+ * so it should be run early after generating FS IR, before other
+ * optimizations or lowering passes have a chance of shuffling the code
+ * around, breaking that assumption.
+ */
+bool
+fs_visitor::opt_bool_bit_size()
+{
+   bool progress = false;
+
+   foreach_block_and_inst_safe(block, fs_inst, inst, cfg) {
+      if (inst->opcode == BRW_OPCODE_CMP &&
+          inst->dst.file == VGRF &&
+          type_sz(inst->dst.type) < 4) {
+         /* Check if the instruction right after the CMP is a straight expansion
+          * of the low bit-size boolean result of the CMP to 32-bit. This
+          * requires:
+          *
+          * 1. It is a MOV instruction sourcing from the CMP destination.
+          * 2. It is not a partial write or read.
+          * 3. The conversion is either HF->F or [B,W]->D. For the integer
+          *    case we need to ensure that no signed/unsigned conversion is
+          *    happening.
+          * 4. There are not source or saturation modifiers involved.
+          */
+         fs_inst *conv_inst = (fs_inst *) inst->next;
+         if (conv_inst->opcode != BRW_OPCODE_MOV ||
+             conv_inst->src[0].file != inst->dst.file ||
+             conv_inst->src[0].nr != inst->dst.nr ||
+             conv_inst->is_partial_write() ||
+             !conv_inst->src[0].is_contiguous() ||
+             conv_inst->src[0].offset % REG_SIZE != 0 ||
+             type_sz(conv_inst->src[0].type) > 2 ||
+             type_sz(conv_inst->dst.type) != 4 ||
+             brw_reg_type_from_bit_size(32, conv_inst->src[0].type) !=
+               conv_inst->dst.type ||
+             conv_inst->src[0].abs ||
+             conv_inst->src[0].negate ||
+             conv_inst->saturate)
+            continue;
+
+         /* If it is a plain boolean conversion to 32-bit, then look for any
+          * follow-up instructions that source from the 32-bit boolean and
+          * rewrite them to source from the output of the CMP (which is the
+          * source of the conversion instruction) directly if possible.
+          */
+         progress = propagate_bool_bit_size(conv_inst, true) || progress;
+      }
+#if 0
+       else if (inst_supports_boolean(inst) && inst->sources > 1) {
+         /* For all logical instructions that can take more than one operand
+          * we need to ensure that all of them have matching bit-sizes. If they
+          * don't, it means that the original shader code is operating boolean
+          * expressions with different native bit-sizes and we need to choose
+          * a canonical boolean form for all the operands, which requires to
+          * inject conversions to temporaries. We choose the bit-size of the
+          * destination as the canonical form (which must be a 32-bit boolean
+          * since we only propagate smaller bit-sizes to the destination if we
+          * managed to convert all the operands to the same bit-size) because
+          * that way we don't need to worry about propagating the destination
+          * bit-size down the line.
+          */
+         for (unsigned i = 0; i < inst->sources; i++) {
+            if (type_sz(inst->src[i].type) != type_sz(inst->dst.type)) {
+               assert(type_sz(inst->dst.type) == 4);
+               const fs_builder ibld =
+                  bld.at(block, inst).group(dispatch_width, 0);
+               fs_reg tmp = ibld.vgrf(BRW_REGISTER_TYPE_D);
+               fs_reg src = retype(inst->src[i],
+                                   get_signed_bool_type(inst->src[i].type));
+               src.negate = false;
+               src.abs = false;
+               ibld.MOV(tmp, src);
+               tmp.negate = inst->src[i].negate;
+               tmp.abs = inst->src[i].abs;
+               inst->src[i] =
+                  retype(tmp, brw_reg_type_from_bit_size(32, inst->src[i].type));
+               progress = true;
+            }
+         }
+      }
+#endif
+   }
+
+   return progress;
+}
+
 bool
 fs_visitor::compute_to_mrf()
 {
@@ -6253,6 +6484,7 @@ fs_visitor::optimize()
 
    OPT(opt_drop_redundant_mov_to_flags);
    OPT(remove_extra_rounding_modes);
+   OPT(opt_bool_bit_size);
 
    do {
       progress = false;
