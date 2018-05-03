@@ -240,6 +240,19 @@ region_contained_in(const fs_reg &r, unsigned dr, const fs_reg &s, unsigned ds)
 }
 
 /**
+ * Check that the register region given by r [r.offset, r.offset + dr[
+ * is exactly the same as the the register region given by s
+ * [s.offset, s.offset + ds[
+ */
+static inline bool
+region_match(const fs_reg &r, unsigned dr, const fs_reg &s, unsigned ds)
+{
+   return reg_space(r) == reg_space(s) &&
+          reg_offset(r) == reg_offset(s) &&
+          reg_offset(r) + dr == reg_offset(s) + ds;
+}
+
+/**
  * Return whether the given register region is n-periodic, i.e. whether the
  * original region remains invariant after shifting it by \p n scalar
  * channels.
