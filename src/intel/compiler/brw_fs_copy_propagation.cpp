@@ -530,6 +530,14 @@ fs_visitor::try_constant_propagate(fs_inst *inst, acp_entry *entry)
    if (entry->saturate)
       return false;
 
+   /* 3-src instructions can't take IMM registers, however, for 32-bit floating
+    * instructions we rely on the combine constants pass to fix it up. For
+    * anything else, we shouldn't be promoting immediates until we can make the
+    * pass capable of combining constants of different sizes.
+    */
+   if (inst->is_3src(devinfo) && type_sz(entry->src.type) != 4)
+      return false;
+
    for (int i = inst->sources - 1; i >= 0; i--) {
       if (inst->src[i].file != VGRF)
          continue;
