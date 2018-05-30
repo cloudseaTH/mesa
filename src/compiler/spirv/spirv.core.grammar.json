@@ -4573,6 +4573,51 @@
           "version" : "None"
         },
         {
+          "enumerant" : "DenormPreserve",
+          "value" : 4459,
+          "capabilities" : [ "ShaderDenormPreserve"],
+          "extensions" : [ "SPV_KHR_shader_float_controls" ],
+          "parameters" : [
+            { "kind" : "LiteralInteger", "name" : "'Scalar Floating-Point Type Bit Width'" }
+          ]
+        },
+        {
+          "enumerant" : "DenormFlushToZero",
+          "value" : 4460,
+          "capabilities" : [ "ShaderDenormFlushToZero"],
+          "extensions" : [ "SPV_KHR_shader_float_controls" ],
+          "parameters" : [
+            { "kind" : "LiteralInteger", "name" : "'Scalar Floating-Point Type Bit Width'" }
+          ]
+        },
+        {
+          "enumerant" : "SignedZeroInfNanPreserve",
+          "value" : 4461,
+          "capabilities" : [ "ShaderSignedZeroInfNanPreserve"],
+          "extensions" : [ "SPV_KHR_shader_float_controls" ],
+          "parameters" : [
+            { "kind" : "LiteralInteger", "name" : "'Scalar Floating-Point Type Bit Width'" }
+          ]
+        },
+        {
+          "enumerant" : "RoundingModeRTE",
+          "value" : 4462,
+          "capabilities" : [ "ShaderRoundingModeRTE"],
+          "extensions" : [ "SPV_KHR_shader_float_controls" ],
+          "parameters" : [
+            { "kind" : "LiteralInteger", "name" : "'Scalar Floating-Point Type Bit Width'" }
+          ]
+        },
+        {
+          "enumerant" : "RoundingModeRTZ",
+          "value" : 4463,
+          "capabilities" : [ "ShaderRoundingModeRTZ"],
+          "extensions" : [ "SPV_KHR_shader_float_controls" ],
+          "parameters" : [
+            { "kind" : "LiteralInteger", "name" : "'Scalar Floating-Point Type Bit Width'" }
+          ]
+        },
+        {
           "enumerant" : "StencilRefReplacingEXT",
           "value" : 5027,
           "capabilities" : [ "StencilExportEXT" ],
@@ -6516,6 +6561,41 @@
           "enumerant" : "SampleMaskPostDepthCoverage",
           "value" : 4447,
           "extensions" : [ "SPV_KHR_post_depth_coverage" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "ShaderDenormPreserve",
+          "value" : 4464,
+          "capabilities" : [ "Shader", "Tessellation", "Geometry" ],
+          "extensions" : [ "SPV_KHR_shader_float_controls" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "ShaderDenormFlushToZero",
+          "value" : 4465,
+          "capabilities" : [ "Shader", "Tessellation", "Geometry" ],
+          "extensions" : [ "SPV_KHR_shader_float_controls" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "ShaderSignedZeroInfNanPreserve",
+          "value" : 4466,
+          "capabilities" : [ "Shader", "Tessellation", "Geometry" ],
+          "extensions" : [ "SPV_KHR_shader_float_controls" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "ShaderRoundingModeRTE",
+          "value" : 4467,
+          "capabilities" : [ "Shader", "Tessellation", "Geometry" ],
+          "extensions" : [ "SPV_KHR_shader_float_controls" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "ShaderRoundingModeRTZ",
+          "value" : 4468,
+          "capabilities" : [ "Shader", "Tessellation", "Geometry" ],
+          "extensions" : [ "SPV_KHR_shader_float_controls" ],
           "version" : "None"
         },
         {
