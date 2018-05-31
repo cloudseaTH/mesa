@@ -3414,6 +3414,14 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          spv_check_supported(stencil_export, cap);
          break;
 
+      case SpvCapabilityShaderDenormFlushToZero:
+      case SpvCapabilityShaderDenormPreserve:
+      case SpvCapabilityShaderSignedZeroInfNanPreserve:
+      case SpvCapabilityShaderRoundingModeRTE:
+      case SpvCapabilityShaderRoundingModeRTZ:
+         spv_check_supported(shader_float_controls, cap);
+         break;
+
       default:
          vtn_fail("Unhandled capability");
       }
