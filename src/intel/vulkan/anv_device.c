@@ -1061,6 +1061,30 @@ void anv_GetPhysicalDeviceProperties2(
          properties->quadOperationsInAllStages = VK_TRUE;
          break;
       }
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT_CONTROLS_PROPERTIES_KHR : {
+         VkPhysicalDeviceFloatControlsPropertiesKHR *properties = (void *)ext;
+         properties->separateDenormSettings = true;
+         properties->separateRoundingModeSettings = false;
+
+         properties->fp16DenormFlushToZero = true;
+         properties->fp16DenormPreserve = true;
+         properties->fp16RoundingModeRTE = true;
+         properties->fp16RoundingModeRTZ = true;
+         properties->fp16SignedZeroInfNanPreserve = false; /* XXX: check */
+
+         properties->fp32DenormFlushToZero = true;
+         properties->fp32DenormPreserve = true;
+         properties->fp32RoundingModeRTE = true;
+         properties->fp32RoundingModeRTZ = true;
+         properties->fp32SignedZeroInfNanPreserve = false; /* XXX: check */
+
+         properties->fp64DenormFlushToZero = true;
+         properties->fp64DenormPreserve = true;
+         properties->fp64RoundingModeRTE = true;
+         properties->fp64RoundingModeRTZ = true;
+         properties->fp64SignedZeroInfNanPreserve = false; /* XXX: check */
+         break;
+      }
 
       default:
          anv_debug_ignored_stype(ext->sType);
