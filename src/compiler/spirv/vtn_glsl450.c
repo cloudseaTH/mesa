@@ -218,8 +218,12 @@ build_log(nir_builder *b, nir_ssa_def *x)
  * in each case.
  */
 static nir_ssa_def *
+build_atan2(nir_builder *b, nir_ssa_def *y, nir_ssa_def *x);
+
+static nir_ssa_def *
 build_asin(nir_builder *b, nir_ssa_def *x, float _p0, float _p1)
 {
+#if 1
    nir_ssa_def *p0 = nir_imm_floatN_t(b, _p0, x->bit_size);
    nir_ssa_def *p1 = nir_imm_floatN_t(b, _p1, x->bit_size);
    nir_ssa_def *one = nir_imm_floatN_t(b, 1.0f, x->bit_size);
@@ -237,6 +241,11 @@ build_asin(nir_builder *b, nir_ssa_def *x, float _p0, float _p1)
                                                                          nir_fadd(b, p0,
                                                                                   nir_fmul(b, abs_x,
                                                                                            p1)))))))));
+#else
+   return build_atan2(b, x,
+                         nir_fsqrt(b, nir_fsub(b, nir_imm_floatN_t(b, 1.0f, x->bit_size),
+                                      nir_fmul(b, x, x))));
+#endif
 }
 
 /**
@@ -813,9 +822,15 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
       return;
 
    case GLSLstd450Acos:
+#if 1
       val->ssa->def =
          nir_fsub(nb, nir_imm_floatN_t(nb, M_PI_2f, src[0]->bit_size),
                       build_asin(nb, src[0], 0.08132463, -0.02363318));
+#else
+      val->ssa->def =
+         build_atan2(nb, nir_fsqrt(nb, nir_fsub(nb, nir_imm_floatN_t(nb, 1.0f, src[0]->bit_size),
+                                                    nir_fmul(nb, src[0], src[0]))), src[0]);
+#endif
       return;
 
    case GLSLstd450Atan:
