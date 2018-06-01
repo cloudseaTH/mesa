@@ -197,6 +197,70 @@ fs_visitor::emit_interpolation_setup_gen4()
    abld.emit(SHADER_OPCODE_RCP, this->pixel_w, wpos_w);
 }
 
+static unsigned
+brw_rnd_mode_from_nir(unsigned mode, unsigned *mask)
+{
+   unsigned brw_mode = 0;
+   *mask = 0;
+
+   if (mode & SHADER_ROUNDING_MODE_RTZ) {
+      printf("RTZ\n");
+      brw_mode |= BRW_RND_MODE_RTZ << BRW_CR0_RND_MODE_SHIFT;
+      *mask |= BRW_CR0_RND_MODE_MASK;
+   }
+   if (mode & SHADER_ROUNDING_MODE_RTE) {
+      printf("RTE\n");
+      brw_mode |= BRW_RND_MODE_RTNE << BRW_CR0_RND_MODE_SHIFT;
+      *mask |= BRW_CR0_RND_MODE_MASK;
+   }
+   if (mode & SHADER_DENORM_PRESERVE_FP16) {
+      printf("PRESERVE 16\n");
+      brw_mode |= BRW_CR0_FP16_DENORM_PRESERVE;
+      *mask |= BRW_CR0_FP16_DENORM_PRESERVE;
+   }
+   if (mode & SHADER_DENORM_PRESERVE_FP32) {
+      printf("PRESERVE 32\n");
+      brw_mode |= BRW_CR0_FP32_DENORM_PRESERVE;
+      *mask |= BRW_CR0_FP32_DENORM_PRESERVE;
+   }
+   if (mode & SHADER_DENORM_PRESERVE_FP64) {
+      printf("PRESERVE 64\n");
+      brw_mode |= BRW_CR0_FP64_DENORM_PRESERVE;
+      *mask |= BRW_CR0_FP64_DENORM_PRESERVE;
+   }
+   if (mode & SHADER_DENORM_FLUSH_TO_ZERO_FP16) {
+      printf("FLUSH 16\n");
+      *mask |= BRW_CR0_FP16_DENORM_PRESERVE;
+   }
+
+   if (mode & SHADER_DENORM_FLUSH_TO_ZERO_FP32) {
+      printf("FLUSH 32\n");
+      *mask |= BRW_CR0_FP32_DENORM_PRESERVE;
+   }
+
+   if (mode & SHADER_DENORM_FLUSH_TO_ZERO_FP64) {
+      printf("FLUSH 64\n");
+      *mask |= BRW_CR0_FP64_DENORM_PRESERVE;
+   }
+
+   return brw_mode;
+}
+
+void
+fs_visitor::emit_shader_float_controls_execution_mode()
+{
+   /* XXX: Check the values in control register */
+   unsigned execution_mode = this->nir->info.shader_float_controls_execution_mode;
+   if (execution_mode == SHADER_DEFAULT_FLOAT_CONTROL_MODE)
+      return;
+
+   fs_builder abld = bld.annotate("shader floats control execution mode");
+   unsigned mask = 0;
+   unsigned mode = brw_rnd_mode_from_nir(execution_mode, &mask);
+   abld.emit(SHADER_OPCODE_FLOAT_CONTROL_MODE, bld.null_reg_ud(),
+             brw_imm_d(mode), brw_imm_d(mask));
+}
+
 /** Emits the interpolation for the varying inputs. */
 void
 fs_visitor::emit_interpolation_setup_gen6()

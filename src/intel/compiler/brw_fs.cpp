@@ -7030,6 +7030,8 @@ fs_visitor::run_cs(unsigned min_dispatch_width)
                suboffset(retype(brw_vec1_grf(0, 0), BRW_REGISTER_TYPE_UW), 1));
    }
 
+   emit_shader_float_controls_execution_mode();
+
    emit_nir_code();
 
    if (failed)
