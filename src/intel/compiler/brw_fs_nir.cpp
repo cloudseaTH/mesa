@@ -679,12 +679,16 @@ fs_visitor::nir_emit_alu(const fs_builder &bld, nir_alu_instr *instr)
       inst->saturate = instr->dest.saturate;
       break;
 
+   case nir_op_f2f16_undef:
    case nir_op_f2f16_rtne:
-   case nir_op_f2f16_rtz:
-      bld.emit(SHADER_OPCODE_RND_MODE, bld.null_reg_ud(),
-               brw_imm_d(brw_rnd_mode_from_nir_op(instr->op)));
-      /* fallthrough */
+   case nir_op_f2f16_rtz: {
+      bool set_rnd_mode = true;
+      if (instr->op == nir_op_f2f16_undef)
+         set_rnd_mode = false;
 
+      if (set_rnd_mode)
+         bld.emit(SHADER_OPCODE_RND_MODE, bld.null_reg_ud(),
+                  brw_imm_d(brw_rnd_mode_from_nir_op(instr->op)));
       /* In theory, it would be better to use BRW_OPCODE_F32TO16. Depending
        * on the HW gen, it is a special hw opcode or just a MOV, and
        * brw_F32TO16 (at brw_eu_emit) would do the work to chose.
@@ -695,7 +699,6 @@ fs_visitor::nir_emit_alu(const fs_builder &bld, nir_alu_instr *instr)
        * BRW_OPCODE_F32TO16 when/if we work for HF support on gen7.
        */
 
-   case nir_op_f2f16_undef:
       /* BDW PRM, vol02, Command Reference Instructions, mov - MOVE:
        *
        *   "There is no direct conversion from HF to DF or DF to HF.
@@ -711,7 +714,10 @@ fs_visitor::nir_emit_alu(const fs_builder &bld, nir_alu_instr *instr)
       }
       inst = bld.MOV(result, op[0]);
       inst->saturate = instr->dest.saturate;
+      if (set_rnd_mode)
+         emit_shader_float_controls_execution_mode();
       break;
+   }
 
    case nir_op_f2f64:
    case nir_op_f2i64:

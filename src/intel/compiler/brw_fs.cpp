@@ -3634,6 +3634,7 @@ fs_visitor::remove_extra_rounding_modes()
 
    foreach_block (block, cfg) {
       brw_rnd_mode prev_mode = BRW_RND_MODE_UNSPECIFIED;
+      fs_inst *prev_inst_float_control = NULL;
 
       foreach_inst_in_block_safe (fs_inst, inst, block) {
          if (inst->opcode == SHADER_OPCODE_RND_MODE) {
@@ -3645,7 +3646,19 @@ fs_visitor::remove_extra_rounding_modes()
             } else {
                prev_mode = mode;
             }
-         }
+
+            if (prev_inst_float_control) {
+               /* We have several conversions with rounding mode in a row,
+                * hence we don't set the config register back to the default
+                * rounding mode until we finish with them.
+                */
+               prev_inst_float_control->remove(block);
+               prev_inst_float_control = NULL;
+            }
+         } else if (inst->opcode == SHADER_OPCODE_FLOAT_CONTROL_MODE)
+            prev_inst_float_control = inst;
+         else
+            prev_inst_float_control = NULL;
       }
    }
 
