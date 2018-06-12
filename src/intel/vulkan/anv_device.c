@@ -1066,7 +1066,12 @@ void anv_GetPhysicalDeviceProperties2(
          properties->separateDenormSettings = true;
          properties->separateRoundingModeSettings = false;
 
-         properties->fp16DenormFlushToZero = true;
+         /* According to PRM:
+          * "math - Extended Math Function
+          * [...]
+          * Restriction : Half-float denorms are always retained."
+          */
+         properties->fp16DenormFlushToZero = false;
          properties->fp16DenormPreserve = true;
          properties->fp16RoundingModeRTE = true;
          properties->fp16RoundingModeRTZ = true;
