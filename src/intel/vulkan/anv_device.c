@@ -1066,13 +1066,15 @@ void anv_GetPhysicalDeviceProperties2(
          properties->separateDenormSettings = true;
          properties->separateRoundingModeSettings = false;
 
-         /* According to PRM:
+         /* Broadwell does not support HF denorms and there are restrictions
+          * other gens. According to Kabylake's PRM:
+          *
           * "math - Extended Math Function
           * [...]
           * Restriction : Half-float denorms are always retained."
           */
          properties->fp16DenormFlushToZero = false;
-         properties->fp16DenormPreserve = true;
+         properties->fp16DenormPreserve = pdevice->info.gen > 8;
          properties->fp16RoundingModeRTE = true;
          properties->fp16RoundingModeRTZ = true;
          properties->fp16SignedZeroInfNanPreserve = true; /* XXX: check */
