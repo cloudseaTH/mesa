@@ -251,8 +251,10 @@ fs_visitor::emit_shader_float_controls_execution_mode()
 {
    /* XXX: Check the values in control register */
    unsigned execution_mode = this->nir->info.shader_float_controls_execution_mode;
-   if (execution_mode == SHADER_DEFAULT_FLOAT_CONTROL_MODE)
-      return;
+      execution_mode =
+         SHADER_DENORM_PRESERVE_FP16 |
+         SHADER_DENORM_PRESERVE_FP32 |
+         SHADER_DENORM_PRESERVE_FP64;
 
    fs_builder abld = bld.annotate("shader floats control execution mode");
    unsigned mask = 0;
