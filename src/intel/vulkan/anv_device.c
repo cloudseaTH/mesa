@@ -1077,19 +1077,19 @@ void anv_GetPhysicalDeviceProperties2(
          properties->fp16DenormPreserve = pdevice->info.gen > 8;
          properties->fp16RoundingModeRTE = true;
          properties->fp16RoundingModeRTZ = true;
-         properties->fp16SignedZeroInfNanPreserve = true; /* XXX: check */
+         properties->fp16SignedZeroInfNanPreserve = false; /* XXX: check */
 
          properties->fp32DenormFlushToZero = true;
          properties->fp32DenormPreserve = true;
          properties->fp32RoundingModeRTE = true;
          properties->fp32RoundingModeRTZ = true;
-         properties->fp32SignedZeroInfNanPreserve = true; /* XXX: check */
+         properties->fp32SignedZeroInfNanPreserve = false; /* XXX: check */
 
          properties->fp64DenormFlushToZero = true;
          properties->fp64DenormPreserve = true;
          properties->fp64RoundingModeRTE = true;
          properties->fp64RoundingModeRTZ = true;
-         properties->fp64SignedZeroInfNanPreserve = true; /* XXX: check */
+         properties->fp64SignedZeroInfNanPreserve = false; /* XXX: check */
          break;
       }
 
