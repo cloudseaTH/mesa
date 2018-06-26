@@ -79,6 +79,8 @@ nir_setup_uniform_remap_tables(struct gl_context *ctx,
    }
 
    /* Reserve locations for rest of the uniforms. */
+   link_util_update_empty_uniform_locations(prog);
+
    for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
       struct gl_uniform_storage *uniform = &prog->data->UniformStorage[i];
 
@@ -93,22 +95,23 @@ nir_setup_uniform_remap_tables(struct gl_context *ctx,
       if (uniform->remap_location != UNMAPPED_UNIFORM_LOC)
          continue;
 
-      /* How many new entries for this uniform? */
+      /* How many entries for this uniform? */
       const unsigned entries = MAX2(1, uniform->array_elements);
 
-      /* @FIXME: By now, we add un-assigned uniform locations to the end of
-       * the uniform file. We need to keep track of empty locations and use
-       * them.
-       */
-      unsigned chosen_location = prog->NumUniformRemapTable;
+      unsigned chosen_location =
+         link_util_find_empty_block(prog, &prog->data->UniformStorage[i]);
 
-      /* resize remap table to fit new entries */
-      prog->UniformRemapTable =
-         reralloc(prog,
-                  prog->UniformRemapTable,
-                  struct gl_uniform_storage *,
-                  prog->NumUniformRemapTable + entries);
-      prog->NumUniformRemapTable += entries;
+      if (chosen_location == -1) {
+         chosen_location = prog->NumUniformRemapTable;
+
+         /* resize remap table to fit new entries */
+         prog->UniformRemapTable =
+            reralloc(prog,
+                     prog->UniformRemapTable,
+                     struct gl_uniform_storage *,
+                     prog->NumUniformRemapTable + entries);
+         prog->NumUniformRemapTable += entries;
+      }
 
       /* set the base location in remap table for the uniform */
       uniform->remap_location = chosen_location;
