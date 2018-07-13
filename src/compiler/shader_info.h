@@ -59,6 +59,8 @@ struct spirv_supported_capabilities {
    bool stencil_export;
    bool atomic_storage;
    bool storage_8bit;
+   bool transform_feedback;
+   bool geometry_streams;
 };
 
 typedef struct shader_info {
