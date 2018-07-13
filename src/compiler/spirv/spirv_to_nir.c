@@ -3424,7 +3424,6 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityStorageImageExtendedFormats:
          break;
 
-      case SpvCapabilityGeometryStreams:
       case SpvCapabilityLinkage:
       case SpvCapabilityVector16:
       case SpvCapabilityFloat16Buffer:
@@ -3434,7 +3433,6 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityInt8:
       case SpvCapabilitySparseResidency:
       case SpvCapabilityMinLod:
-      case SpvCapabilityTransformFeedback:
          vtn_warn("Unsupported SPIR-V capability: %s",
                   spirv_capability_to_string(cap));
          break;
@@ -3451,6 +3449,14 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          break;
       case SpvCapabilityInt16:
          spv_check_supported(int16, cap);
+         break;
+
+      case SpvCapabilityTransformFeedback:
+         spv_check_supported(transform_feedback, cap);
+         break;
+
+      case SpvCapabilityGeometryStreams:
+         spv_check_supported(geometry_streams, cap);
          break;
 
       case SpvCapabilityAddresses:
