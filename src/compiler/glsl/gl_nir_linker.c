@@ -75,6 +75,8 @@ add_interface_variables(const struct gl_context *cts,
       sh_var->type = var->type;
       sh_var->location = var->data.location;
 
+      /* @TODO: Fill in the rest of gl_shader_variable data. */
+      /* @FIXME: manage arrays, structs, etc */
       if (!link_util_add_program_resource(prog, resource_set,
                                           programInterface,
                                           sh_var, 1 << stage)) {
@@ -127,6 +129,15 @@ nir_build_program_resource_list(struct gl_context *ctx,
                                 GL_PROGRAM_OUTPUT))
       return;
 
+   /* Add inputs and outputs to the resource list. */
+   if (!add_interface_variables(ctx, prog, resource_set, input_stage,
+                                GL_PROGRAM_INPUT))
+      return;
+
+   if (!add_interface_variables(ctx, prog, resource_set, output_stage,
+                                GL_PROGRAM_OUTPUT))
+      return;
+
    /* Add uniforms
     *
     * Here, it is expected that nir_link_uniforms() has already been
@@ -152,7 +163,6 @@ nir_build_program_resource_list(struct gl_context *ctx,
          return;
       }
    }
-
 
    /* Add program uniform blocks. */
    for (unsigned i = 0; i < prog->data->NumUniformBlocks; i++) {
