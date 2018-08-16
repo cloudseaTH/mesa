@@ -275,6 +275,14 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
                       prog->Name);
    nir_validate_shader(nir);
 
+   bool debug_enabled = getenv("INTEL_DEBUG") != NULL;
+   if (unlikely(debug_enabled)) {
+      fprintf(stderr, "NIR (just after spirv_to_nir) for %s shader:\n",
+              _mesa_shader_stage_to_string(nir->info.stage));
+      nir_print_shader(nir, stderr);
+   }
+
+
    nir->info.separate_shader = linked_shader->Program->info.separate_shader;
 
    /* We have to lower away local constant initializers right before we
@@ -309,6 +317,12 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
        * investigate by spec which one are setting the correct value.
        */
       /* var->data.interpolation = INTERP_MODE_FLAT; */
+   }
+
+   if (unlikely(debug_enabled)) {
+      fprintf(stderr, "NIR (returned by _mesa_spirv_to_nir) for %s shader:\n",
+              _mesa_shader_stage_to_string(nir->info.stage));
+      nir_print_shader(nir, stderr);
    }
 
    return nir;
