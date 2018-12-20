@@ -324,6 +324,10 @@ color_attachment_compute_aux_usage(struct anv_device * device,
          break;
       }
 
+      /* Gen9 doesn't support fast clear on single-sampled SRGB buffers */
+      if (GEN_GEN == 9 && isl_format_is_srgb(iview->planes[0].isl.format) && iview->image->samples == 1)
+         att_state->fast_clear = false;
+
       /* Potentially, we could do partial fast-clears but doing so has crazy
        * alignment restrictions.  It's easier to just restrict to full size
        * fast clears for now.
