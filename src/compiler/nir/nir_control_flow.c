@@ -550,7 +550,6 @@ stitch_blocks(nir_block *before, nir_block *after)
     */
 
    if (nir_block_ends_in_jump(before)) {
-      assert(exec_list_is_empty(&after->instr_list));
       if (after->successors[0])
          remove_phi_src(after->successors[0], after);
       if (after->successors[1])
