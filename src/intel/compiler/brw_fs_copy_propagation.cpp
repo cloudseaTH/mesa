@@ -770,8 +770,14 @@ fs_visitor::try_constant_propagate(fs_inst *inst, acp_entry *entry)
          progress = true;
          break;
 
+      /* 3-src instructions can't take immediates but the combine constants
+       * pass will take care.
+       */
       case BRW_OPCODE_MAD:
       case BRW_OPCODE_LRP:
+      case BRW_OPCODE_BFE:
+      case BRW_OPCODE_BFREV:
+      case BRW_OPCODE_BFI2:
          inst->src[i] = val;
          progress = true;
          break;

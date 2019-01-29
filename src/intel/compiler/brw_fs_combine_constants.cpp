@@ -73,6 +73,9 @@ must_promote_imm(const struct gen_device_info *devinfo, const fs_inst *inst)
       return devinfo->gen < 8;
    case BRW_OPCODE_MAD:
    case BRW_OPCODE_LRP:
+   case BRW_OPCODE_BFE:
+   case BRW_OPCODE_BFREV:
+   case BRW_OPCODE_BFI2:
       return true;
    default:
       return false;
