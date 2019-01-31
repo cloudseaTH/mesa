@@ -66,13 +66,20 @@ could_coissue(const struct gen_device_info *devinfo, const fs_inst *inst)
  * Returns true for instructions that don't support immediate sources.
  */
 static bool
-must_promote_imm(const struct gen_device_info *devinfo, const fs_inst *inst)
+must_promote_imm(const struct gen_device_info *devinfo,
+                 const fs_inst *inst, const int src_idx)
 {
    switch (inst->opcode) {
    case SHADER_OPCODE_INT_QUOTIENT:
    case SHADER_OPCODE_INT_REMAINDER:
    case SHADER_OPCODE_POW:
-      return devinfo->gen < 8;
+      return src_idx != 1 || devinfo->gen < 8;
+   case BRW_OPCODE_BFI1:
+   case BRW_OPCODE_ASR:
+   case BRW_OPCODE_SHL:
+   case BRW_OPCODE_SHR:
+   case BRW_OPCODE_SUBB:
+      return src_idx != 1;
    case BRW_OPCODE_MAD:
    case BRW_OPCODE_LRP:
    case BRW_OPCODE_BFE:
@@ -316,11 +323,16 @@ fs_visitor::opt_combine_constants()
    foreach_block_and_inst(block, fs_inst, inst, cfg) {
       ip++;
 
-      if (!could_coissue(devinfo, inst) && !must_promote_imm(devinfo, inst))
+      const bool is_coissue_candidate = could_coissue(devinfo, inst);
+      if (!is_coissue_candidate && !must_promote_imm(devinfo, inst, -1))
          continue;
 
       for (int i = 0; i < inst->sources; i++) {
          if (inst->src[i].file != IMM)
+            continue;
+
+         const bool must_promote = must_promote_imm(devinfo, inst, i);
+         if (!is_coissue_candidate && !must_promote)
             continue;
 
          char data[8];
@@ -338,8 +350,8 @@ fs_visitor::opt_combine_constants()
                imm->inst = NULL;
             imm->block = intersection;
             imm->uses->push_tail(link(const_ctx, &inst->src[i]));
-            imm->uses_by_coissue += could_coissue(devinfo, inst);
-            imm->must_promote = imm->must_promote || must_promote_imm(devinfo, inst);
+            imm->uses_by_coissue += is_coissue_candidate;
+            imm->must_promote = imm->must_promote || must_promote;
             imm->last_use_ip = ip;
          } else {
             imm = new_imm(&table, const_ctx);
@@ -350,8 +362,8 @@ fs_visitor::opt_combine_constants()
             memcpy(imm->bytes, data, size);
             imm->size = size;
             imm->is_half_float = type == BRW_REGISTER_TYPE_HF;
-            imm->uses_by_coissue = could_coissue(devinfo, inst);
-            imm->must_promote = must_promote_imm(devinfo, inst);
+            imm->uses_by_coissue = is_coissue_candidate;
+            imm->must_promote = must_promote;
             imm->first_use_ip = ip;
             imm->last_use_ip = ip;
          }
