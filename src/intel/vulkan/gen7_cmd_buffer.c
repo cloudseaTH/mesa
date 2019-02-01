@@ -70,12 +70,21 @@ gen7_cmd_buffer_emit_scissor(struct anv_cmd_buffer *cmd_buffer)
       };
 
       const int max = 0xffff;
+
+      uint32_t height = 0;
+      uint32_t width = 0;
+
+      if (fb) {
+        height = fb->height;
+        width = fb->width;
+      }
+
       struct GEN7_SCISSOR_RECT scissor = {
          /* Do this math using int64_t so overflow gets clamped correctly. */
          .ScissorRectangleYMin = clamp_int64(s->offset.y, 0, max),
          .ScissorRectangleXMin = clamp_int64(s->offset.x, 0, max),
-         .ScissorRectangleYMax = clamp_int64((uint64_t) s->offset.y + s->extent.height - 1, 0, fb->height - 1),
-         .ScissorRectangleXMax = clamp_int64((uint64_t) s->offset.x + s->extent.width - 1, 0, fb->width - 1)
+         .ScissorRectangleYMax = clamp_int64((uint64_t) s->offset.y + s->extent.height - 1, 0, height - 1),
+         .ScissorRectangleXMax = clamp_int64((uint64_t) s->offset.x + s->extent.width - 1, 0, width - 1)
       };
 
       if (s->extent.width <= 0 || s->extent.height <= 0) {
