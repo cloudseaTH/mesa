@@ -386,21 +386,15 @@ brw_initialize_spirv_supported_capabilities(struct brw_context *brw)
    const struct gen_device_info *devinfo = &brw->screen->devinfo;
    struct gl_context *ctx = &brw->ctx;
 
-   /* The following SPIR-V capabilities are only supported on gen7+. In theory
-    * you should enable the extension only on gen7+, but just in case let's
-    * assert it.
-    */
-   assert(devinfo->gen >= 7);
-
    ctx->Const.SpirVCapabilities.atomic_storage = devinfo->gen >= 7;
-   ctx->Const.SpirVCapabilities.draw_parameters = true;
+   ctx->Const.SpirVCapabilities.draw_parameters = devinfo->gen >= 7;
    ctx->Const.SpirVCapabilities.float64 = devinfo->gen >= 8;
    ctx->Const.SpirVCapabilities.geometry_streams = devinfo->gen >= 7;
-   ctx->Const.SpirVCapabilities.image_write_without_format = true;
+   ctx->Const.SpirVCapabilities.image_write_without_format = devinfo->gen >= 7;
    ctx->Const.SpirVCapabilities.int64 = devinfo->gen >= 8;
-   ctx->Const.SpirVCapabilities.tessellation = true;
+   ctx->Const.SpirVCapabilities.tessellation = devinfo->gen >= 6;
    ctx->Const.SpirVCapabilities.transform_feedback = devinfo->gen >= 7;
-   ctx->Const.SpirVCapabilities.variable_pointers = true;
+   ctx->Const.SpirVCapabilities.variable_pointers = devinfo->gen >= 7;
 }
 
 static void
