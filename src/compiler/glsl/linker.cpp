@@ -2050,6 +2050,11 @@ link_fs_inout_layout_qualifiers(struct gl_shader_program *prog,
       linked_shader->Program->info.fs.sample_interlock_unordered |=
          shader->SampleInterlockUnordered;
 
+      linked_shader->Program->info.fs.pixel_center_integer =
+         shader->pixel_center_integer;
+      linked_shader->Program->info.fs.origin_upper_left =
+         shader->origin_upper_left;
+
       linked_shader->Program->sh.fs.BlendSupport |= shader->BlendSupport;
    }
 }
