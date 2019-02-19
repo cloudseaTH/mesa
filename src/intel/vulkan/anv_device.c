@@ -1088,7 +1088,7 @@ void anv_GetPhysicalDeviceProperties(
          16 * devinfo->max_cs_threads,
          16 * devinfo->max_cs_threads,
       },
-      .subPixelPrecisionBits                    = 4 /* FIXME */,
+      .subPixelPrecisionBits                    = 8 /* FIXME */,
       .subTexelPrecisionBits                    = 4 /* FIXME */,
       .mipmapPrecisionBits                      = 4 /* FIXME */,
       .maxDrawIndexedIndexValue                 = UINT32_MAX,
